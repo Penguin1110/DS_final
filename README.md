@@ -1,3 +1,9 @@
+# 🧴 Cosmetic Insight  
+Keyword-based Cosmetic Search Engine  
+
+## 🧩 System Architecture
+
+```mermaid
 flowchart TD
 
 %% ========== FRONTEND ========== %%
