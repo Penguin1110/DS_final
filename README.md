@@ -1,20 +1,14 @@
-# 🧴 Cosmetic Insight  
-Keyword-based Cosmetic Search Engine  
-
-## 🧩 System Architecture
-
-```mermaid
 flowchart TD
 
-%% ========== FRONTEND ========== %%
-subgraph Frontend [🌐 Frontend Layer]
+%% ===== FRONTEND ===== %%
+subgraph Frontend [Frontend Layer]
     UI[HTML_UI\nUser Input & Result Display]
     JS[JavaScript_Core\nHandle Events / Fetch API]
     CSS[CSS_Styles\nLayout & Visual Design]
 end
 
-%% ========== BACKEND ========== %%
-subgraph Backend [🧩 Backend Layer]
+%% ===== BACKEND ===== %%
+subgraph Backend [Backend Layer]
     A[SearchEngineApplication\nMain Entry]
     C[SearchController\nAPI Endpoint]
     T[TranslationHandler\nChinese → English]
@@ -30,7 +24,7 @@ subgraph Backend [🧩 Backend Layer]
     end
 end
 
-%% ========== DATA FLOW ========== %%
+%% ===== DATA FLOW ===== %%
 UI -->|"User enters query"| JS
 JS -->|"POST /api/search"| C
 C -->|"Translate to English"| T
@@ -48,11 +42,10 @@ C -->|"Send Results"| JS
 JS -->|"Render Data"| UI
 UI -->|"Apply Styles"| CSS
 
-%% ========== DECORATION ========== %%
-classDef front fill:#F5F5F5,stroke:#999,stroke-width:1px;
-classDef back fill:#F0FFF0,stroke:#999,stroke-width:1px;
-classDef sub fill:#E8F6E8,stroke:#888,stroke-width:1px;
-classDef arrow stroke:#333,stroke-width:1px;
+%% ===== STYLE ===== %%
+classDef front fill:#f5f5f5,stroke:#999,stroke-width:1px;
+classDef back fill:#f0fff0,stroke:#999,stroke-width:1px;
+classDef sub fill:#e8f6e8,stroke:#888,stroke-width:1px;
 class UI,JS,CSS front
 class A,C,T,O,Q back
 class CR,H,K,R,F sub
