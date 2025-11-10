@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>💄 Glowgle 化妝品搜尋</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #fff8f4;
+      text-align: center;
+      padding-top: 100px;
+    }
+    .logo {
+      font-size: 48px;
+      font-weight: bold;
+      color: #e48ca4;
+    }
+    input[type="text"] {
+      width: 400px;
+      padding: 12px;
+      font-size: 18px;
+      border: 2px solid #e48ca4;
+      border-radius: 8px;
+    }
+    button {
+      padding: 12px 24px;
+      font-size: 18px;
+      background-color: #e48ca4;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .results {
+      margin-top: 40px;
+      font-size: 16px;
+    }
+    .item {
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="logo">💄 Glowgle</div>
+
+  <div>
+    <input id="query" type="text" placeholder="輸入化妝品關鍵字">
+    <button onclick="search()">搜尋</button>
+  </div>
+
+  <div id="results" class="results"></div>
+
+  <script>
+    async function search() {
+      const q = document.getElementById("query").value.trim();
+      if (!q) return;
+
+      try {
+        const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+        const data = await res.json();
+
+        const container = document.getElementById("results");
+        if (data.length === 0) {
+          container.innerHTML = "<p>找不到結果 😢</p>";
+          return;
+        }
+
+        container.innerHTML = data.map(item =>
+          `<div class="item"><a href="${item.link}" target="_blank">${item.title}</a></div>`
+        ).join('');
+      } catch (err) {
+        console.error(err);
+        document.getElementById("results").innerHTML = "<p>搜尋時發生錯誤 ⚠️</p>";
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-package com.example.dsfinal;
+package dsfinal;
 
 public class SearchResult {
     private String title;
