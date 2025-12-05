@@ -1,7 +1,36 @@
 package dsfinal;
 
 public class SearchController {
-    
+    TranslationHandler translationHandler;
+    OneHotEncoder encoder;
+    CosmeticQuery cosmeticQuery;
+    ResultFormatter formatter;
+    Logger logger;
+
+    public SearchResult search(String query) {
+        // 整個 Search Pipeline 的 orchestrator
+        if (query == null || query.isEmpty()) {
+            return formatter.formatError("查詢不可為空", 400);
+        }
+ 
+        try {
+            String detectedLang = translationHandler.detectLanguage(query);
+            if ("zh".equals(detectedLang)) {
+                query = translationHandler.translate(query);
+            }
+
+            List<String> keywords = encoder.encode(query);
+            List<SearchResultItem> results = cosmeticQuery.search(keywords);
+
+            if (results.isEmpty()) {
+                return formatter.formatError("查無資料", 404);
+            }
+
+            return formatter.format(results);
+        } catch (Exception e) {
+            return handleError(e);
+        }
+    }
 }
 /* 
     SearchController（流程總管）
