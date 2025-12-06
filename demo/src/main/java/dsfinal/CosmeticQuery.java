@@ -1,7 +1,7 @@
 package dsfinal;
 
 public class CosmeticQuery {
-    
+    //123
 }
 /* 
 5. CosmeticQuery（搜尋主邏輯）
