@@ -4,63 +4,40 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class HtmlHandler {
-    // 可以在這裡設定針對特定網站的 Selector，目前先用通用的
-    private String titleSelector = "title"; 
 
-    /**
-     * 解析 HTML 字串，轉成 PageResult 物件
-     * @param html 爬蟲抓下來的 HTML 原始碼
-     * @param url 該頁面的網址 (用來處理相對路徑連結)
-     */
     public PageResult parseResults(String html, String url) {
         try {
-            // 1. 使用 Jsoup 解析 HTML
             Document doc = Jsoup.parse(html, url);
-
-            // 2. 抽取標題
             String title = doc.title();
             if (title == null || title.isEmpty()) {
-                // 如果沒有 title tag，試著找 h1
                 Element h1 = doc.selectFirst("h1");
                 title = (h1 != null) ? h1.text() : "No Title";
             }
 
-            // 3. 抽取子連結 (呼叫下方的輔助方法)
+            // 這裡呼叫改進過的 extractSubLinks
             List<String> subLinks = extractSubLinks(doc);
 
-            // 4. 清洗內容 (這步最關鍵，去雜訊)
-            // 移除 script, style, nav, footer 等非主要內容標籤
             doc.select("script, style, nav, footer, iframe, meta, link").remove();
-            
-            // 取得純文字內容 (text() 會自動去掉 HTML tag)
             String content = doc.body().text();
 
             return new PageResult(title, content, url, subLinks);
 
         } catch (Exception e) {
-            e.printStackTrace();
-            // 解析失敗回傳空物件，避免當機
             return new PageResult("Error", "", url, new ArrayList<>());
         }
     }
 
-    /**
-     * 抽取頁面中所有的有效連結 (<a> tag)
-     */
     private List<String> extractSubLinks(Document doc) {
         List<String> links = new ArrayList<>();
-        Elements aTags = doc.select("a[href]"); // 只抓有 href 屬性的 a 標籤
+        // 策略：抓取所有連結，但透過嚴格篩選只留商品
+        Elements aTags = doc.select("a[href]"); 
 
         for (Element link : aTags) {
-            // Jsoup 的 abs:href 會自動幫你把相對路徑轉成絕對路徑 (http://...)
             String absUrl = link.attr("abs:href");
-
-            // 簡單過濾：只留 http/https，且過濾掉過短或顯然是廣告的連結
             if (isValidLink(absUrl)) {
                 links.add(absUrl);
             }
@@ -69,16 +46,43 @@ public class HtmlHandler {
     }
 
     /**
-     * 連結過濾規則 (可依需求擴充)
+     * 關鍵修改：過濾導覽列，只抓商品頁
      */
     private boolean isValidLink(String url) {
         if (url == null || url.isEmpty()) return false;
         if (!url.startsWith("http")) return false;
         
-        // 過濾掉常見的圖片、檔案、或社群分享連結
-        String lowerUrl = url.toLowerCase();
-        if (lowerUrl.endsWith(".jpg") || lowerUrl.endsWith(".png") || lowerUrl.endsWith(".pdf")) return false;
-        if (lowerUrl.contains("facebook.com/sharer") || lowerUrl.contains("twitter.com/share")) return false;
+        String lower = url.toLowerCase();
+
+        // 1. 基本檔案過濾
+        if (lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".pdf") || lower.endsWith(".css") || lower.endsWith(".js")) return false;
+
+        // 2. 嚴格過濾導覽列與功能連結 (黑名單)
+        if (lower.contains("login") || lower.contains("register") || lower.contains("member") || 
+            lower.contains("forgot") || lower.contains("contact") || lower.contains("about") || 
+            lower.contains("policy") || lower.contains("terms") || lower.contains("faq") ||
+            lower.contains("facebook") || lower.contains("instagram") || lower.contains("line") ||
+            lower.contains("youtube") || lower.contains("google")) { // 這裡過濾 google 是為了不抓 google 自己的設定頁
+            return false;
+        }
+
+        // 3. 針對 UrCosme/Cosme 的特定垃圾過濾 (根據你的 Log)
+        // 我們不要 "beauty-awards" 也不要 "brands" (品牌總覽)，我們要的是具體的 "products"
+        if (lower.contains("beauty-awards") || lower.contains("brands") || lower.contains("ranking")) {
+            return false;
+        }
+
+        // 4. (進階) 白名單策略：如果網址包含特定特徵才要
+        // UrCosme 的商品頁通常包含 "/products/"
+        // Google 搜尋出的外部連結通常不包含 "google.com"
+        
+        // 如果是 Cosme 網站，我們只想要商品頁
+        if (lower.contains("cosme.net.tw") || lower.contains("urcosme.com")) {
+            // 如果網址不包含 products，就丟掉 (這樣最準！)
+            if (!lower.contains("products")) {
+                return false;
+            }
+        }
 
         return true;
     }

@@ -1,80 +1,344 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <title>💄 Glowgle 化妝品搜尋</title>
-  <style>
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background-color: #fff8f4;
-      text-align: center;
-      padding-top: 100px;
-    }
-    .logo {
-      font-size: 48px;
-      font-weight: bold;
-      color: #e48ca4;
-    }
-    input[type="text"] {
-      width: 400px;
-      padding: 12px;
-      font-size: 18px;
-      border: 2px solid #e48ca4;
-      border-radius: 8px;
-    }
-    button {
-      padding: 12px 24px;
-      font-size: 18px;
-      background-color: #e48ca4;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-left: 10px;
-    }
-    .results {
-      margin-top: 40px;
-      font-size: 16px;
-    }
-    .item {
-      margin-bottom: 12px;
-    }
-  </style>
-</head>
-<body>
-  <div class="logo">💄 Glowgle</div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>化妝品智慧搜尋引擎</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-  <div>
-    <input id="query" type="text" placeholder="輸入化妝品關鍵字">
-    <button onclick="search()">搜尋</button>
-  </div>
-
-  <div id="results" class="results"></div>
-
-  <script>
-    async function search() {
-      const q = document.getElementById("query").value.trim();
-      if (!q) return;
-
-      try {
-        const res = await fetch(`/search?q=${encodeURIComponent(q)}`);
-        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
-        const data = await res.json();
-
-        const container = document.getElementById("results");
-        if (data.length === 0) {
-          container.innerHTML = "<p>找不到結果 😢</p>";
-          return;
+    <style>
+        /* --- 設定專業、簡約、質感美妝主題的樣式 --- */
+        :root {
+            --color-primary: #8b5f65; /* 乾燥玫瑰/紅棕色 (主題色) */
+            --color-secondary: #c9ada7; /* 淺灰玫瑰 (輔助色) */
+            --color-background: #fcfcfc; /* 乾淨米白色背景 */
+            --color-text-dark: #333333; /* 主要文字顏色 */
+            --color-text-light: #777777; /* 輔助文字顏色 */
+            --color-accent: #b29479; /* 柔和金色/香檳色 (點綴) */
         }
 
-        container.innerHTML = data.map(item =>
-          `<div class="item"><a href="${item.link}" target="_blank">${item.title}</a></div>`
-        ).join('');
-      } catch (err) {
-        console.error(err);
-        document.getElementById("results").innerHTML = "<p>搜尋時發生錯誤 ⚠️</p>";
-      }
-    }
-  </script>
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background-color: var(--color-background);
+            color: var(--color-text-dark);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 60px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 960px;
+            background-color: #ffffff;
+            padding: 40px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+            border-radius: 15px;
+            min-height: 80vh;
+            border: 1px solid #eee;
+        }
+
+        h1 {
+            color: var(--color-primary);
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 2.2em;
+        }
+
+        .intro {
+            text-align: center;
+            color: var(--color-text-light);
+            margin-bottom: 30px;
+            font-size: 1em;
+        }
+
+        /* --- 搜尋框樣式 --- */
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        #inputField {
+            flex-grow: 1;
+            padding: 14px 18px;
+            border: 1px solid var(--color-secondary);
+            border-radius: 25px;
+            font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        #inputField:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(139, 95, 101, 0.1);
+            outline: none;
+        }
+
+        #searchButton {
+            padding: 14px 30px;
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        #searchButton:hover {
+            background-color: #6a494d;
+        }
+
+        #searchButton:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* --- 關鍵字建議區 --- */
+        .suggestion-box {
+            margin-bottom: 25px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .suggestion-tag {
+            background-color: #f7f3f3;
+            color: var(--color-primary);
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: 1px solid var(--color-secondary);
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .suggestion-tag:hover {
+            background-color: #ece5e5;
+            border-color: var(--color-primary);
+        }
+
+        /* --- 搜尋結果卡片 --- */
+        .result-container {
+            margin-top: 30px;
+        }
+
+        .result-card {
+            background-color: #ffffff;
+            border-left: 5px solid var(--color-accent);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            transition: box-shadow 0.3s;
+        }
+
+        .result-card:hover {
+            box-shadow: 0 4px 12px rgba(178, 148, 121, 0.2);
+        }
+
+        .result-card h3 {
+            margin-top: 0;
+            color: var(--color-primary);
+            font-size: 1.3em;
+            margin-bottom: 5px;
+        }
+
+        .result-card a {
+            color: var(--color-primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .result-card a:hover {
+            text-decoration: underline;
+        }
+
+        .result-card p {
+            color: var(--color-text-light);
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+
+        .result-card .score {
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: var(--color-accent);
+        }
+
+        .placeholder-text {
+            text-align: center;
+            color: var(--color-text-light);
+            margin-top: 60px;
+            font-style: italic;
+        }
+
+        /* --- 載入動畫 --- */
+        .loading-animation {
+            text-align: center;
+            margin: 40px 0;
+            color: var(--color-primary);
+            font-size: 1.3em;
+            font-weight: 500;
+        }
+
+        .fa-spin {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>化妝品智慧搜尋引擎</h1>
+        <p class="intro">美妝 / 保養 / 推薦 / 評比</p>
+
+        <div class="search-bar">
+            <input type="text" id="inputField" placeholder="請輸入關鍵字，例如：保濕 粉底液 敏感肌...">
+            <button id="searchButton"><i class="fa fa-search"></i> 搜尋</button>
+        </div>
+
+        <div id="suggestionBox" class="suggestion-box">
+            <span class="suggestion-tag">保濕粉底</span>
+            <span class="suggestion-tag">美白精華</span>
+            <span class="suggestion-tag">控油隔離霜</span>
+            <span class="suggestion-tag">敏感肌乳液</span>
+        </div>
+        
+        <div id="loadingAnimation" class="loading-animation" style="display: none;">
+            <i class="fas fa-spinner fa-spin"></i> 正在爬取與分析資料中...
+        </div>
+
+        <div id="resultContainer" class="result-container">
+            <p class="placeholder-text">輸入關鍵字，即可開始搜尋最適合您的化妝品。</p>
+        </div>
+    </div>
+
+    <script>
+        // 設定後端 API 位址 (如果是本地開發通常是 localhost:8080)
+        // 使用相對路徑可以避免跨域問題 (前提是 HTML 放在 Spring Boot 的 static 資料夾下)
+        // 或是直接指定絕對路徑
+        const apiURL = 'http://localhost:8080/api/search'; 
+        
+        let isLoading = false;
+
+        const inputField = document.getElementById('inputField');
+        const searchButton = document.getElementById('searchButton');
+        const resultContainer = document.getElementById('resultContainer');
+        const suggestionBox = document.getElementById('suggestionBox');
+        const loadingAnimation = document.getElementById('loadingAnimation');
+
+        // 綁定預設推薦詞的點擊事件
+        document.querySelectorAll('.suggestion-tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                inputField.value = tag.textContent;
+                sendQuery(tag.textContent);
+            });
+        });
+
+        /**
+         * 核心搜尋函式 (修正為 GET 方法)
+         */
+        async function sendQuery(query) {
+            if (isLoading || !query.trim()) {
+                return;
+            }
+
+            isLoading = true;
+            searchButton.disabled = true;
+            loadingAnimation.style.display = 'block';
+            resultContainer.innerHTML = ''; 
+
+            try {
+                // ✅ 修正點：使用 URL 參數傳遞 (GET)，而非 body (POST)
+                // encodeURIComponent 用於處理中文或特殊符號
+                const targetUrl = `${apiURL}?q=${encodeURIComponent(query)}`;
+                
+                const response = await fetch(targetUrl, {
+                    method: 'GET', // 明確指定為 GET
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                // 處理業務邏輯錯誤 (ResultFormatter 回傳的 status)
+                if (data.status === 'error') {
+                     showError(data.errorMessage || '查詢發生錯誤');
+                     return;
+                }
+                
+                // 處理 HTTP 錯誤
+                if (!response.ok) {
+                    showError(`伺服器錯誤: ${response.status}`);
+                    return;
+                }
+
+                renderResults(data.results);
+
+            } catch (error) {
+                console.error('API Error:', error);
+                showError('無法連線到伺服器，請確認後端程式是否已啟動 (localhost:8080)。');
+            } finally {
+                isLoading = false;
+                searchButton.disabled = false;
+                loadingAnimation.style.display = 'none';
+            }
+        }
+
+        function renderResults(results) {
+            if (!results || results.length === 0) {
+                showError('查無符合資料，請嘗試其他關鍵字。');
+                return;
+            }
+
+            results.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'result-card';
+
+                const title = document.createElement('h3');
+                const link = document.createElement('a');
+                link.href = item.url;
+                link.target = '_blank';
+                link.textContent = item.title;
+                title.appendChild(link);
+
+                const summary = document.createElement('p');
+                const cleanSummary = item.summary ? item.summary : '無摘要';
+                summary.textContent = cleanSummary;
+
+                const score = document.createElement('p');
+                score.className = 'score';
+                // 顯示分數 (四捨五入到小數點後2位)
+                score.innerHTML = `<strong>相關度:</strong> ${item.score ? item.score.toFixed(2) : 'N/A'}`;
+
+                card.appendChild(title);
+                card.appendChild(summary);
+                card.appendChild(score);
+                resultContainer.appendChild(card);
+            });
+        }
+
+        function showError(msg) {
+            resultContainer.innerHTML = `<p class="error-message" style="color: var(--color-primary); text-align: center; margin-top: 20px;">${msg}</p>`;
+        }
+
+        // 綁定事件
+        searchButton.addEventListener('click', () => {
+            sendQuery(inputField.value);
+        });
+
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                sendQuery(inputField.value);
+            }
+        });
+    </script>
 </body>
 </html>

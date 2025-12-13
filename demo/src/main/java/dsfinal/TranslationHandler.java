@@ -1,42 +1,58 @@
 package dsfinal;
 
-import java.util.Map;
-
+import org.jsoup.Jsoup;
+import java.net.URLEncoder;
+import io.github.cdimascio.dotenv.Dotenv;
 public class TranslationHandler {
-    Map<String, String> cosmeticDictionary;
-    LanguageDetector detector;
-    Translator externalAPITranslator;
-}
+    // ⚠️ 請在此填入你的 Google Cloud API Key
+    private static final String API_KEY = Dotenv.load().get("GOOGLE_API_KEY");
 
-/*
- * 3. TranslationHandler（紀）
- * ◎ Variables
- * 
- * Map<String, String> cosmeticDictionary
- * 
- * LanguageDetector detector
- * 
- * Translator externalAPITranslator
- * 
- * ◎ Methods
- * detectLanguage(String text)
- * 
- * → 使用語言偵測器判斷輸入文字是否為中文或英文
- * → 回傳語言標籤（"zh" / "en"）
- * 
- * translate(String query)
- * 
- * → 中文 → 英文轉換流程
- * 
- * detectLanguage(query)
- * 
- * 若是英文 → 直接回傳
- * 
- * 呼叫 externalAPITranslator.translate(query)
- * 
- * 用 cosmeticDictionary 修正（如 "乳液" → "lotion"）
- * 
- * 移除多餘字詞（像 "the", "a", "really"）
- * 
- * 回傳 final 英文查詢字串
- */
+    /**
+     * 判斷是否需要翻譯 (若包含英文且無中文，則視為需要翻譯)
+     */
+    public boolean needsTranslation(String query) {
+        if (query == null) return false;
+        boolean hasChinese = query.matches(".*[\\u4e00-\\u9fa5].*");
+        boolean hasEnglish = query.matches(".*[a-zA-Z].*");
+        return !hasChinese && hasEnglish;
+    }
+
+    /**
+     * 呼叫 Google Translate API (Target = zh-TW)
+     */
+    public String translateToChinese(String query) {
+        if (query == null || query.isEmpty()) return "";
+
+        try {
+            // 建構 API URL
+            String url = "https://translation.googleapis.com/language/translate/v2?key=" + API_KEY
+                       + "&q=" + URLEncoder.encode(query, "UTF-8")
+                       + "&target=zh-TW"; // 目標語言：繁體中文
+
+            String jsonResponse = Jsoup.connect(url)
+                    .ignoreContentType(true)
+                    .execute()
+                    .body();
+
+            return parseGoogleJsonResponse(jsonResponse);
+
+        } catch (Exception e) {
+            System.err.println("Translation API Failed: " + e.getMessage());
+            return query; // 失敗時回傳原文
+        }
+    }
+
+    private String parseGoogleJsonResponse(String json) {
+        // 簡單解析 JSON: {"data": {"translations": [{"translatedText": "..."}]}}
+        String marker = "\"translatedText\": \"";
+        int start = json.indexOf(marker);
+        if (start != -1) {
+            start += marker.length();
+            int end = json.indexOf("\"", start);
+            if (end != -1) {
+                return Jsoup.parse(json.substring(start, end)).text();
+            }
+        }
+        return json;
+    }
+}

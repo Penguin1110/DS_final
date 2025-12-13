@@ -1,118 +1,140 @@
 package dsfinal;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.Random;
 
 public class Crawler {
-    private final int timeout = 6000;
-    private final String userAgent = "Mozilla/5.0";
+    private HtmlHandler htmlHandler;
 
-    /**
-     * 單頁抓取
-     * 負責處理 HTTP 連線、轉址 (Redirect) 與讀取內容
-     */
-    public String fetch(String urlStr) {
-        String currentUrl = urlStr;
-        int hops = 0;
-        
-        // 允許最多 5 次轉址，避免無窮迴圈
-        while (hops < 5) {
-            HttpURLConnection conn = null;
-            try {
-                URL url = new URL(currentUrl);
-                conn = (HttpURLConnection) url.openConnection();
-                conn.setInstanceFollowRedirects(false); // 手動處理轉址
-                conn.setConnectTimeout(timeout);
-                conn.setReadTimeout(timeout);
-                conn.setRequestProperty("User-Agent", userAgent);
+    // ============ 1. 高效能設定 (源自 WebCrawler.java) ============
+    private static final int CONNECT_TIMEOUT_SECONDS = 5;
+    private static final int REQUEST_TIMEOUT_SECONDS = 10;
+    
+    // 共享 HttpClient (支援 HTTP/2, 連線池)
+    private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
+        .connectTimeout(Duration.ofSeconds(CONNECT_TIMEOUT_SECONDS))
+        .followRedirects(HttpClient.Redirect.NORMAL)
+        .version(HttpClient.Version.HTTP_2)
+        .build();
 
-                int code = conn.getResponseCode();
+    // User-Agent 輪替清單 (抗封鎖)
+    private static final List<String> USER_AGENTS = List.of(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
+    );
+    private final Random random = new Random();
 
-                // 處理 3xx 轉址
-                if (code >= 300 && code < 400) {
-                    String newLocation = conn.getHeaderField("Location");
-                    if (newLocation == null || newLocation.isEmpty()) {
-                        return "";
-                    }
-                    // 處理相對路徑轉絕對路徑
-                    URL absoluteUrl = new URL(new URL(currentUrl), newLocation);
-                    currentUrl = absoluteUrl.toString();
-                    hops++;
-                    conn.disconnect();
-                    continue;
-                }
-
-                // 處理 4xx / 5xx 錯誤 (視為抓取失敗)
-                if (code >= 400) {
-                    return "";
-                }
-
-                // 讀取成功內容
-                StringBuilder sb = new StringBuilder();
-                try (BufferedReader br = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
-                    String line;
-                    while ((line = br.readLine()) != null) {
-                        sb.append(line).append("\n");
-                    }
-                }
-                return sb.toString();
-
-            } catch (Exception e) {
-                // 發收任何網路錯誤，回傳空字串，確保流程不中斷
-                // 實際專案中可以使用 Logger 記錄 e.getMessage()
-                return "";
-            } finally {
-                if (conn != null) {
-                    conn.disconnect();
-                }
-            }
-        }
-        return "";
+    public Crawler(HtmlHandler htmlHandler) {
+        this.htmlHandler = htmlHandler;
     }
 
     /**
-     * 批次抓取：使用多執行緒並行處理
-     * 依據規格，這能提升速度
+     * 批量抓取入口 (保留你原本的邏輯)
      */
-    public List<String> fetchBatch(List<String> urls) {
-        List<String> results = new ArrayList<>();
-        
-        // 建立執行緒池 (Thread Pool)，大小設為 URL 數量或固定上限 (例如 10)
-        // 這裡設為 10，避免一次發出太多 Request 被擋
-        ExecutorService executor = Executors.newFixedThreadPool(Math.min(urls.size(), 10));
-        
-        List<Future<String>> futures = new ArrayList<>();
-
-        // 1. 為每個 URL 建立一個任務 (Task)
+    public List<PageResult> fetchBatch(List<String> urls) {
+        List<PageResult> results = new ArrayList<>();
         for (String url : urls) {
-            Callable<String> task = () -> fetch(url);
-            futures.add(executor.submit(task));
-        }
-
-        // 2. 收集結果
-        for (Future<String> future : futures) {
-            try {
-                // get() 會等待該任務完成並取得回傳值
-                String html = future.get();
-                if (html != null && !html.isEmpty()) {
-                    results.add(html);
-                }
-            } catch (InterruptedException | ExecutionException e) {
-                // 若某個執行緒出錯，忽略該筆，繼續處理下一筆
-                e.printStackTrace();
+            // 深度設為 3 (抓主頁 + 三層子連結) - 保持不變
+            PageResult page = crawl(url, 3);
+            if (page != null) {
+                results.add(page);
             }
         }
-
-        // 3. 關閉執行緒池
-        executor.shutdown();
-        
         return results;
+    }
+
+    /**
+     * 遞迴抓取核心 (保留你的遞迴邏輯，但底層換成高效能 HttpClient)
+     */
+    private PageResult crawl(String url, int depth) {
+        System.out.println("Crawling (Depth " + depth + "): " + url);
+        
+        // 使用新版的重試機制來獲取 HTML
+        String htmlContent = fetchHtmlWithRetry(url, 2); // 最多重試 2 次
+        
+        if (htmlContent == null || htmlContent.isEmpty()) {
+            return null; // 抓取失敗
+        }
+
+        // 解析 HTML (使用原本的 HtmlHandler)
+        PageResult page = htmlHandler.parseResults(htmlContent, url);
+
+        // 遞迴抓取子連結 (你的核心邏輯，完全保留)
+        if (depth > 0 && page.subLinks != null) {
+            int count = 0;
+            int limit = 4; // 你的限制設定
+
+            for (String subLink : page.subLinks) {
+                if (count >= limit) break;
+                
+                // 禮貌性延遲 (保留你的設定)
+                try { Thread.sleep(1000); } catch (InterruptedException e) {}
+
+                PageResult child = crawl(subLink, depth - 1);
+                if (child != null) {
+                    page.addChildPage(child);
+                    count++;
+                }
+            }
+        }
+        return page;
+    }
+
+    /**
+     * ============ 2. 核心升級：帶重試機制的 HTTP 請求 ============
+     * (移植自 WebCrawler.java 的 crawlWithRetry 邏輯)
+     */
+    private String fetchHtmlWithRetry(String url, int maxRetries) {
+        for (int attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                // 輪替 User-Agent
+                String userAgent = USER_AGENTS.get(random.nextInt(USER_AGENTS.size()));
+                
+                HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(url))
+                    .header("User-Agent", userAgent)
+                    .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9")
+                    .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7") // 模擬繁體中文瀏覽器
+                    .timeout(Duration.ofSeconds(REQUEST_TIMEOUT_SECONDS))
+                    .GET()
+                    .build();
+                
+                HttpResponse<String> response = HTTP_CLIENT.send(request, 
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+                
+                int status = response.statusCode();
+                
+                // 處理 HTTP 狀態碼
+                if (status == 200) {
+                    return response.body();
+                } else if (status == 429) { // Too Many Requests
+                    System.err.println("Rate limited (429) for " + url + ", retrying...");
+                    Thread.sleep(2000 * (attempt + 1)); // 指數退避等待
+                } else if (status >= 500) { // Server Error
+                    System.err.println("Server error (" + status + ") for " + url + ", retrying...");
+                    Thread.sleep(1000 * (attempt + 1));
+                } else {
+                    System.err.println("Failed to fetch " + url + ": HTTP " + status);
+                    return null; // 404, 403 等錯誤直接放棄
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return null;
+            } catch (Exception e) {
+                System.err.println("Error fetching " + url + " (Attempt " + (attempt + 1) + "): " + e.getMessage());
+                // 連線超時或其他錯誤，等待後重試
+                try { Thread.sleep(1000); } catch (InterruptedException ie) {}
+            }
+        }
+        return null; // 重試多次後仍失敗
     }
 }
