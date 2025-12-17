@@ -29,12 +29,13 @@ public class SearchController {
 
         // 3. 設定搜尋來源 (這裡請換成你真正想爬的網站，或者靜態測試頁)
         List<String> baseUrls = Arrays.asList(
-            "https://www.google.com/search?q="// 範例
+            
+    "https://html.duckduckgo.com/html/?q="
  
         );
-
+        //"https://www.google.com/search?q="/
         // 4. 初始化主流程
-        this.cosmeticQuery = new CosmeticQuery(crawler, ranker, baseUrls);
+        this.cosmeticQuery = new CosmeticQuery(crawler, ranker);
     }
 
     @GetMapping("/search")
@@ -63,7 +64,7 @@ public class SearchController {
             if (results.isEmpty()) {
                 return formatter.formatError("查無資料", 404);
             }
-
+            //results.removeIf(page -> page.url.contains("google.com/search"));
             // D. 回傳結果
             return formatter.format(results);
 

@@ -33,6 +33,11 @@
             <artifactId>dotenv-java</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.10.1</version>
+        </dependency>
         <!-- ✅ 測試（可有可無） -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

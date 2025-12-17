@@ -1,47 +1,55 @@
 package dsfinal;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CosmeticQuery {
     private final Crawler crawler;
     private final ProductRanker ranker;
-    private final List<String> baseUrls;
+    // ❌ 移除 baseUrls，我們不再需要手動組裝搜尋引擎網址了
 
-    public CosmeticQuery(Crawler crawler, ProductRanker ranker, List<String> baseUrls) {
+    // 建構子也變乾淨了，不需要傳入 baseUrls
+    public CosmeticQuery(Crawler crawler, ProductRanker ranker) {
         this.crawler = crawler;
         this.ranker = ranker;
-        this.baseUrls = baseUrls;
     }
 
     public List<PageResult> search(List<String> keywords) {
         if (keywords == null || keywords.isEmpty()) return new ArrayList<>();
 
-        // 1. 產生 URL
-        List<String> urls = buildQueryUrls(keywords);
+        System.out.println("--- 收到關鍵字: " + keywords + " ---");
 
-        // 2. 爬蟲 (含遞迴)
-        List<PageResult> results = crawler.fetchBatch(urls);
+        // 1. 智慧擴充 (只負責組裝成一個漂亮的查詢字串，例如 "橘子 彩妝")
+        String queryStr = buildSmartQuery(keywords);
+        System.out.println("--- [智慧擴充] 準備搜尋: " + queryStr + " ---");
+
+        // 2. ✅✅✅ 關鍵修改：呼叫 Crawler 的 API 搜尋入口
+        // 舊的寫法是 crawler.fetchBatch(urls)，那是錯的！
+        // 這裡會觸發 Crawler -> GoogleApiService -> 拿到種子網址 -> 批量爬取
+        List<PageResult> results = crawler.searchAndCrawl(queryStr);
+        
+        System.out.println("--- 爬蟲結束，共抓取 " + results.size() + " 筆資料 ---");
 
         // 3. 排名
         return ranker.rankResults(results, keywords);
     }
 
-    private List<String> buildQueryUrls(List<String> keywords) {
-        List<String> queryUrls = new ArrayList<>();
-        // 用空格連接關鍵字
-        String queryStr = String.join(" ", keywords);
-        try {
-            // URL Encode (中文轉 %xx)
-            String encoded = URLEncoder.encode(queryStr, StandardCharsets.UTF_8.toString());
-            for (String base : baseUrls) {
-                queryUrls.add(base + encoded);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+    private String buildSmartQuery(List<String> keywords) {
+        List<String> expandedKeywords = new ArrayList<>(keywords);
+
+        // 【全域脈絡注入】檢查是否有美妝相關詞
+        boolean hasContext = keywords.stream().anyMatch(k -> 
+            k.contains("妝") || k.contains("粉底") || k.contains("口紅") || 
+            k.contains("眼影") || k.contains("腮紅") || k.contains("唇")
+        );
+
+        if (!hasContext) {
+            expandedKeywords.add("彩妝");
+            expandedKeywords.add("化妝品"); 
         }
-        return queryUrls;
+
+        // 直接回傳組裝好的字串 (例如 "橘子 彩妝 化妝品")
+        // 不再回傳 List<String> urls，因為我們不需要自己拼 google.com 網址
+        return String.join(" ", expandedKeywords);
     }
 }
