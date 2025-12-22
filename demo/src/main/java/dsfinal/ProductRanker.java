@@ -5,10 +5,14 @@ import java.util.List;
 import java.util.Map;
 
 public class ProductRanker {
-    private static final double WEIGHT_TITLE = 1.5;       // 提高標題權重
-    private static final double WEIGHT_FUNCTIONAL = 0.8;  // 提高功能詞權重
-    private static final double WEIGHT_OTHER = 0.2;
-    private static final double WEIGHT_CHILD_PAGE = 0.5;  // 提高子頁面回饋權重
+    private static final double WEIGHT_TITLE = 0.75;       // 標題命中權重
+    private static final double WEIGHT_FUNCTIONAL = 0.25;  // 搜尋詞是功能詞的權重
+    private static final double WEIGHT_OTHER = 0.05;       // 搜尋詞是普通詞的權重
+    
+    // 額外加分權重 
+    private static final double BONUS_FUNCTIONAL = 0.1;   // 文章包含其他功能詞
+    
+    private static final double WEIGHT_CHILD_PAGE = 0.5;
 
     private KeywordExtractor extractor;
 
@@ -20,71 +24,86 @@ public class ProductRanker {
         System.out.println("--- 開始評分 (總頁數: " + pages.size() + ") ---");
         
         for (PageResult page : pages) {
-            page.score = calculatePageScore(page, queryKeywords);
-            
-            // Debug: 印出有分數的頁面
-            if (page.score >= 0) {
-                System.out.printf("   [Score: %.2f] %s (%s)\n", page.score, page.title, page.url);
+            // 1. 提取並回存
+            Map<String, Integer> mainFreqMap = extractor.extractKeywords(page.content);
+            page.keywords = mainFreqMap;
+
+            // 2. 計算分數
+            double currentScore = calculateScoreFromFreq(page.title, mainFreqMap, queryKeywords);
+
+            // 3. 子頁面處理
+            double childScoreTotal = 0.0;
+            if (page.childPages != null) {
+                for (PageResult child : page.childPages) {
+                    Map<String, Integer> childFreqMap = extractor.extractKeywords(child.content);
+                    child.keywords = childFreqMap;
+                    double cScore = calculateScoreFromFreq(child.title, childFreqMap, queryKeywords);
+                    child.score = cScore;
+                    childScoreTotal += cScore;
+                }
+            }
+
+            page.score = currentScore + (childScoreTotal * WEIGHT_CHILD_PAGE);
+
+            if (page.score > 0) {
+                System.out.printf("   [Score: %.2f] %s\n", page.score, page.title);
             }
         }
         
-        // 分數高 -> 低
         Collections.sort(pages, (p1, p2) -> Double.compare(p2.score, p1.score));
         return pages;
     }
 
-    private double calculatePageScore(PageResult page, List<String> queryKeywords) {
-        if (page == null || queryKeywords == null || queryKeywords.isEmpty()) return 0.0;
-
-        // 1. 計算本頁內容分數
-        double contentScore = calculateContentScore(page.title, page.content, queryKeywords);
-
-        // 2. 計算子頁面分數 (遞迴加總)
-        double childScoreTotal = 0.0;
-        if (page.childPages != null) {
-            for (PageResult child : page.childPages) {
-                childScoreTotal += calculateContentScore(child.title, child.content, queryKeywords);
-            }
-        }
-
-        return contentScore + (WEIGHT_CHILD_PAGE * childScoreTotal);
-    }
-
-    private double calculateContentScore(String title, String content, List<String> keywords) {
-        double score = 0.0;
-        Map<String, Integer> freqMap = extractor.extractKeywords(content);
+    private double calculateScoreFromFreq(String title, Map<String, Integer> freqMap, List<String> queryKeywords) {
+        if (freqMap == null || freqMap.isEmpty()) return 0.0;
         
-        // 轉小寫比對
+        double score = 0.0;
         String titleLower = (title != null) ? title.toLowerCase() : "";
 
-        for (String k : keywords) {
-            String kLower = k.toLowerCase();
 
-            // 標題命中 (只要包含關鍵字就算分)
-            double tScore = titleLower.contains(kLower) ? 1.0 : 0.0;
+        for (String k : queryKeywords) {
+            String kLower = k.toLowerCase();
+            
+            // 標題命中
+            if (titleLower.contains(kLower)) {
+                score += (WEIGHT_TITLE * 10.0); // 標題權重放大，確保關聯性
+            }
 
             // 內文命中
-            double fScore = 0.0;
-            double oScore = 0.0;
-            
-            // 嘗試取得詞頻 (支援大小寫)
-            int freq = freqMap.getOrDefault(k, 0); 
+            int freq = freqMap.getOrDefault(k, 0);
             if (freq == 0) freq = freqMap.getOrDefault(kLower, 0);
 
             if (freq > 0) {
-                // 如果是我們定義的功能詞，分數加倍
                 if (extractor.isFunctionalKeyword(k)) {
-                    fScore = freq; 
+                    score += freq * WEIGHT_FUNCTIONAL;
                 } else {
-                    // 即使不是功能詞，只要是使用者搜的字，也該給基本分 (這是之前的 Bug，導致非功能詞 0 分)
-                    oScore = freq; 
+                    score += freq * WEIGHT_OTHER;
+                }
+            }
+        }
+
+
+        // 遍歷這篇文章
+        for (Map.Entry<String, Integer> entry : freqMap.entrySet()) {
+            String word = entry.getKey();
+            int count = entry.getValue();
+
+  
+            // 獎勵內容豐富的文章
+            boolean isUserQuery = false;
+            for (String q : queryKeywords) {
+                if (q.equalsIgnoreCase(word)) {
+                    isUserQuery = true;
+                    break;
                 }
             }
 
-            score += (WEIGHT_TITLE * tScore) + 
-                     (WEIGHT_FUNCTIONAL * fScore) + 
-                     (WEIGHT_OTHER * oScore);
+            if (!isUserQuery && extractor.isFunctionalKeyword(word)) {
+
+                score += count * BONUS_FUNCTIONAL;
+            }
         }
+
         return score;
     }
 }

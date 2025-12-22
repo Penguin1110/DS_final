@@ -6,10 +6,7 @@ import java.util.List;
 
 public class OneHotEncoder {
     
-    /**
-     * 將使用者輸入的查詢字串切分為關鍵字
-     * 例如："保濕 粉底" -> ["保濕", "粉底"]
-     */
+   
     public List<String> encode(String query) {
         if (query == null || query.isEmpty()) {
             return new ArrayList<>();

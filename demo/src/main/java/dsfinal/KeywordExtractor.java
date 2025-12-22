@@ -3,9 +3,9 @@ package dsfinal;
 import java.util.*;
 
 public class KeywordExtractor {
-    private Set<String> functionalKeywords; // F: 功能性 (權重 0.25) - 包含功效、成分、膚質
-    private Set<String> categoryKeywords;   // C: 分類詞 (權重視演算法而定) - 產品型態
-    private Set<String> otherKeywords;      // O: 其他 (權重 0.05) - 品牌、輔助工具
+    private Set<String> functionalKeywords; // F: 功能性- 包含功效、成分、膚質
+    private Set<String> categoryKeywords;   // C: 分類詞 - 產品型態
+    private Set<String> otherKeywords;      // O: 其他 - 品牌、輔助工具
 
     public KeywordExtractor() {
         initializeCategoryKeywords();

@@ -17,7 +17,7 @@ import java.util.Properties;
 
 public class GoogleApiService {
 
-    // 改為實例變數，不再寫死
+    // 改為實例變數
     private String apiKey;
     private String cxId;
 
@@ -25,7 +25,7 @@ public class GoogleApiService {
 
     public GoogleApiService() {
         this.client = HttpClient.newHttpClient();
-        // 初始化時載入設定
+       
         loadConfig();
     }
 
@@ -98,7 +98,7 @@ public class GoogleApiService {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null; // 發生例外也切換
+            return null; // 發生例外切換
         }
         return resultUrls;
     }

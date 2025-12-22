@@ -23,8 +23,8 @@ public class HtmlHandler {
                 title = (h1 != null) ? h1.text() : "No Title";
             }
 
-            // ✅ 強力過濾 1: 標題黑名單 (Title Blacklist)
-            // 只要標題出現這些字，直接當作廢棄頁面，且不抓其子連結
+     
+
             if (isJunkPage(title)) {
                 System.out.println("   -> [Junk] 標題過濾 (登入/無關頁面): " + title);
                 // 回傳空物件，Crawler 收到後會忽略它
@@ -37,7 +37,7 @@ public class HtmlHandler {
             doc.select("script, style, nav, footer, iframe, meta, link, header").remove(); // 多移除 header
             String content = doc.body().text();
 
-            // 如果內容太短 (例如少於 10 個字)，通常也是無效頁面
+            //內容太短
             if (content.length() < 10) {
                  return new PageResult(title, "", url, new ArrayList<>());
             }
@@ -72,7 +72,7 @@ public class HtmlHandler {
                 if (decoded != null) href = decoded;
             }
 
-            // ✅ 強力過濾 2: 網址黑名單 (URL Blacklist)
+
             if (isValidLink(href)) {
                 if (!links.contains(href)) {
                     links.add(href);
@@ -99,12 +99,12 @@ public class HtmlHandler {
 
         String lower = url.toLowerCase();
 
-        // 1. 絕對不爬的網域 (搜尋引擎、社群媒體)
+        // 1. 絕對不爬的網域
         if (lower.contains("google.") || lower.contains("duckduckgo.") || lower.contains("bing.") || lower.contains("yahoo.")) return false;
         if (lower.contains("facebook.") || lower.contains("instagram.") || lower.contains("twitter.") || lower.contains("youtube.")) return false;
         if (lower.contains("dcard.tw/f/") && !lower.contains("/p/")) return false; // Dcard 只爬文章(/p/)，不爬列表(/f/)
 
-        // 2. 絕對不爬的功能性頁面 (登入、註冊、購物車)
+        // 2. 絕對不爬的功能性頁面
         if (lower.contains("login") || lower.contains("signin") || lower.contains("sign-in") || 
             lower.contains("signup") || lower.contains("sign-up") || lower.contains("register") || 
             lower.contains("member") || lower.contains("account") || lower.contains("my-account") ||

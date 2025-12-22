@@ -1,344 +1,262 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>化妝品智慧搜尋引擎</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <title>GLOWGLE | 你的美妝好夥伴</title>
+   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <style>
-        /* --- 設定專業、簡約、質感美妝主題的樣式 --- */
-        :root {
-            --color-primary: #8b5f65; /* 乾燥玫瑰/紅棕色 (主題色) */
-            --color-secondary: #c9ada7; /* 淺灰玫瑰 (輔助色) */
-            --color-background: #fcfcfc; /* 乾淨米白色背景 */
-            --color-text-dark: #333333; /* 主要文字顏色 */
-            --color-text-light: #777777; /* 輔助文字顏色 */
-            --color-accent: #b29479; /* 柔和金色/香檳色 (點綴) */
-        }
+   <style>
+    
+       :root {
+           --primary-pink: #FFD1DC;
+           --bg-color: #FFF5F7;
+           --card-bg: #FFFFFF;
+           --text-main: #5D4037;
+           --text-sub: #8D6E63;
+           --accent-color: #E91E63;
+           --hover-shadow: 0 10px 20px rgba(233, 30, 99, 0.15);
+           --border-radius: 20px;
+           --title-color: #bf5a76;
+           --subtitle-color: #fe89aa;
+       }
 
-        body {
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
-            background-color: var(--color-background);
-            color: var(--color-text-dark);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
-            padding-top: 60px;
-        }
+      
+       .keywords-row {
+           display: flex;
+           gap: 8px;
+           margin-top: 12px;
+           margin-bottom: 5px;
+           flex-wrap: wrap;
+       }
 
-        .container {
-            width: 90%;
-            max-width: 960px;
-            background-color: #ffffff;
-            padding: 40px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
-            border-radius: 15px;
-            min-height: 80vh;
-            border: 1px solid #eee;
-        }
+       .keyword-tag {
+           font-size: 0.8rem;
+           background-color: #f0f0f0;
+           color: #666;
+           padding: 4px 10px;
+           border-radius: 12px;
+           transition: all 0.2s;
+           cursor: pointer;
+           border: 1px solid transparent;
+       }
 
-        h1 {
-            color: var(--color-primary);
-            text-align: center;
-            margin-bottom: 8px;
-            font-weight: 600;
-            font-size: 2.2em;
-        }
-
-        .intro {
-            text-align: center;
-            color: var(--color-text-light);
-            margin-bottom: 30px;
-            font-size: 1em;
-        }
-
-        /* --- 搜尋框樣式 --- */
-        .search-bar {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-        }
-
-        #inputField {
-            flex-grow: 1;
-            padding: 14px 18px;
-            border: 1px solid var(--color-secondary);
-            border-radius: 25px;
-            font-size: 1em;
-            transition: border-color 0.3s, box-shadow 0.3s;
-        }
-
-        #inputField:focus {
-            border-color: var(--color-primary);
-            box-shadow: 0 0 0 3px rgba(139, 95, 101, 0.1);
-            outline: none;
-        }
-
-        #searchButton {
-            padding: 14px 30px;
-            background-color: var(--color-primary);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: 500;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-
-        #searchButton:hover {
-            background-color: #6a494d;
-        }
-
-        #searchButton:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        /* --- 關鍵字建議區 --- */
-        .suggestion-box {
-            margin-bottom: 25px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-        }
-
-        .suggestion-tag {
-            background-color: #f7f3f3;
-            color: var(--color-primary);
-            padding: 6px 12px;
-            border-radius: 15px;
-            font-size: 0.9em;
-            cursor: pointer;
-            border: 1px solid var(--color-secondary);
-            transition: background-color 0.2s, border-color 0.2s;
-        }
-
-        .suggestion-tag:hover {
-            background-color: #ece5e5;
-            border-color: var(--color-primary);
-        }
-
-        /* --- 搜尋結果卡片 --- */
-        .result-container {
-            margin-top: 30px;
-        }
-
-        .result-card {
-            background-color: #ffffff;
-            border-left: 5px solid var(--color-accent);
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 18px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            transition: box-shadow 0.3s;
-        }
-
-        .result-card:hover {
-            box-shadow: 0 4px 12px rgba(178, 148, 121, 0.2);
-        }
-
-        .result-card h3 {
-            margin-top: 0;
-            color: var(--color-primary);
-            font-size: 1.3em;
-            margin-bottom: 5px;
-        }
-
-        .result-card a {
-            color: var(--color-primary);
-            text-decoration: none;
-            font-weight: 500;
-        }
-
-        .result-card a:hover {
-            text-decoration: underline;
-        }
-
-        .result-card p {
-            color: var(--color-text-light);
-            font-size: 0.95em;
-            line-height: 1.6;
-        }
-
-        .result-card .score {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: var(--color-accent);
-        }
-
-        .placeholder-text {
-            text-align: center;
-            color: var(--color-text-light);
-            margin-top: 60px;
-            font-style: italic;
-        }
-
-        /* --- 載入動畫 --- */
-        .loading-animation {
-            text-align: center;
-            margin: 40px 0;
-            color: var(--color-primary);
-            font-size: 1.3em;
-            font-weight: 500;
-        }
-
-        .fa-spin {
-            margin-right: 10px;
-        }
-    </style>
+       .keyword-tag:hover {
+           background-color: var(--primary-pink);
+           color: var(--text-main);
+           border-color: #ffb7c5;
+       }
+       
+       .keyword-tag i {
+           font-size: 0.7rem;
+           margin-right: 4px;
+           color: var(--accent-color);
+       }
+       
+      
+       * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Noto Sans TC', sans-serif; }
+       body { background-color: var(--bg-color); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 40px 20px; overflow-x: hidden; position: relative; }
+       .bg-icon { position: fixed; color: var(--accent-color); opacity: 0.08; z-index: -1; animation: float 6s ease-in-out infinite; pointer-events: none; }
+       .icon-1 { top: 10%; left: 5%; font-size: 3rem; animation-duration: 8s; }
+       .icon-2 { top: 15%; right: 8%; font-size: 2.5rem; animation-duration: 10s; animation-delay: 1s; }
+       .icon-3 { bottom: 15%; left: 6%; font-size: 4rem; animation-duration: 12s; animation-delay: 2s; }
+       .icon-4 { bottom: 10%; right: 5%; font-size: 3rem; animation-duration: 9s; animation-delay: 0.5s; }
+       .icon-5 { top: 45%; left: -2%; font-size: 6rem; opacity: 0.04; animation-duration: 15s; }
+       @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-20px) rotate(8deg); } 100% { transform: translateY(0px) rotate(0deg); } }
+       header { text-align: center; margin-bottom: 40px; animation: fadeIn Down 0.8s ease; position: relative; z-index: 10; }
+       h1 { font-size: 3.75rem; color: var(--title-color); margin-bottom: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 15px; }
+       h1 i { color: var(--accent-color); font-size: 2.5rem; }
+       .subtitle { color: var(--subtitle-color); font-size: 1.3rem; letter-spacing: 2px; font-weight: 500; }
+       .search-wrapper { width: 100%; max-width: 800px; background: var(--card-bg); border-radius: 50px; padding: 8px; display: flex; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 25px; border: 2px solid transparent; transition: all 0.3s ease; position: relative; z-index: 10; }
+       .search-wrapper:focus-within { border-color: var(--primary-pink); box-shadow: var(--hover-shadow); }
+       #inputField { flex: 1; border: none; outline: none; padding: 15px 25px; font-size: 1.1rem; border-radius: 50px; color: var(--text-main); background: transparent; }
+       #inputField::placeholder { color: #ccc; }
+       #searchButton { background-color: var(--text-main); color: white; border: none; padding: 12px 35px; border-radius: 40px; cursor: pointer; font-size: 1rem; transition: background 0.3s; display: flex; align-items: center; gap: 8px; }
+       #searchButton:hover { background-color: var(--accent-color); }
+       #searchButton:disabled { background-color: #ccc; cursor: not-allowed; }
+       .tags-container { display: flex; gap: 12px; margin-bottom: 40px; flex-wrap: wrap; justify-content: center; position: relative; z-index: 10; }
+       .tag { background: white; color: var(--text-sub); padding: 8px 20px; border-radius: 20px; font-size: 0.95rem; cursor: pointer; border: 1px solid #eee; transition: all 0.3s; display: flex; align-items: center; gap: 8px; }
+       .tag:hover { background-color: var(--primary-pink); color: var(--text-main); transform: translateY(-3px); border-color: var(--primary-pink); }
+       .tag i { color: var(--accent-color); font-size: 0.8rem; }
+       .results-container { width: 100%; max-width: 900px; display: grid; gap: 20px; position: relative; z-index: 10; }
+       .card { background: var(--card-bg); border-radius: 20px; padding: 25px; display: flex; gap: 20px; align-items: flex-start; box-shadow: 0 4px 10px rgba(0,0,0,0.02); transition: all 0.3s ease; position: relative; overflow: hidden; border: 1px solid white; animation: fadeIn 0.5s ease; }
+       .card:hover { transform: translateY(-5px); box-shadow: var(--hover-shadow); border-color: var(--primary-pink); }
+       .card::after { content: ''; position: absolute; right: -20px; top: -20px; width: 80px; height: 80px; background: var(--bg-color); border-radius: 50%; z-index: 0; }
+       .card-img-placeholder { width: 80px; height: 80px; background-color: var(--bg-color); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 2rem; color: var(--primary-pink); flex-shrink: 0; z-index: 1; }
+       .card-content { flex: 1; z-index: 1; }
+       .card-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; color: var(--text-main); }
+       .card-title a { text-decoration: none; color: inherit; transition: color 0.2s; }
+       .card-title a:hover { color: var(--accent-color); }
+       .card-desc { font-size: 0.95rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 10px; } /* 微調 margin */
+       .card-footer { display: flex; justify-content: space-between; border-top: 1px solid #f0f0f0; padding-top: 10px; align-items: center; }
+       .match-score { font-weight: bold; color: var(--accent-color); font-size: 0.9rem; }
+       .action-link { font-size: 0.9rem; color: var(--text-sub); text-decoration: none; display: flex; align-items: center; gap: 5px; }
+       .action-link:hover { color: var(--accent-color); }
+       .loading-animation, .error-message, .placeholder-text { text-align: center; color: var(--text-sub); margin: 40px 0; width: 100%; grid-column: 1 / -1; }
+       .placeholder-text { font-size: 1.1rem; opacity: 0.7; }
+       @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+       @media (max-width: 600px) { h1 { font-size: 2.5rem; } .card { flex-direction: column; } .card-img-placeholder { width: 60px; height: 60px; font-size: 1.5rem; } #searchButton span { display: none; } }
+   </style>
 </head>
 <body>
-    <div class="container">
-        <h1>化妝品智慧搜尋引擎</h1>
-        <p class="intro">美妝 / 保養 / 推薦 / 評比</p>
 
-        <div class="search-bar">
-            <input type="text" id="inputField" placeholder="請輸入關鍵字，例如：保濕 粉底液 敏感肌...">
-            <button id="searchButton"><i class="fa fa-search"></i> 搜尋</button>
-        </div>
+   <i class="fa-solid fa-wand-magic-sparkles bg-icon icon-1"></i>
+   <i class="fa-regular fa-gem bg-icon icon-2"></i>
+   <i class="fa-solid fa-spray-can bg-icon icon-3"></i>
+   <i class="fa-regular fa-heart bg-icon icon-4"></i>
+   <i class="fa-solid fa-feather bg-icon icon-5"></i>
 
-        <div id="suggestionBox" class="suggestion-box">
-            <span class="suggestion-tag">保濕粉底</span>
-            <span class="suggestion-tag">美白精華</span>
-            <span class="suggestion-tag">控油隔離霜</span>
-            <span class="suggestion-tag">敏感肌乳液</span>
-        </div>
-        
-        <div id="loadingAnimation" class="loading-animation" style="display: none;">
-            <i class="fas fa-spinner fa-spin"></i> 正在爬取與分析資料中...
-        </div>
+   <header>
+       <h1><i class="fa-solid fa-sparkles"></i> GLOWGLE</h1>
+       <p class="subtitle">你的美妝好夥伴</p>
+   </header>
 
-        <div id="resultContainer" class="result-container">
-            <p class="placeholder-text">輸入關鍵字，即可開始搜尋最適合您的化妝品。</p>
-        </div>
-    </div>
+   <div class="search-wrapper">
+       <input type="text" id="inputField" placeholder="輸入關鍵字，例如：保濕、美白精華...">
+       <button id="searchButton">
+           <i class="fa-solid fa-magnifying-glass"></i>
+           <span>搜尋</span>
+       </button>
+   </div>
 
-    <script>
-        // 設定後端 API 位址 (如果是本地開發通常是 localhost:8080)
-        // 使用相對路徑可以避免跨域問題 (前提是 HTML 放在 Spring Boot 的 static 資料夾下)
-        // 或是直接指定絕對路徑
-        const apiURL = 'http://localhost:8080/api/search'; 
-        
-        let isLoading = false;
+   <div id="suggestionBox" class="tags-container">
+       <div class="tag"><i class="fa-solid fa-droplet"></i> 保濕粉底</div>
+       <div class="tag"><i class="fa-regular fa-lightbulb"></i> 美白精華</div>
+       <div class="tag"><i class="fa-solid fa-sun"></i> 控油隔離霜</div>
+       <div class="tag"><i class="fa-solid fa-feather"></i> 敏感肌乳液</div>
+   </div>
+  
+   <div id="loadingAnimation" class="loading-animation" style="display: none;">
+       <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--accent-color);"></i>
+       <p style="margin-top: 10px;">正在為您尋找最適合的產品...</p>
+   </div>
 
-        const inputField = document.getElementById('inputField');
-        const searchButton = document.getElementById('searchButton');
-        const resultContainer = document.getElementById('resultContainer');
-        const suggestionBox = document.getElementById('suggestionBox');
-        const loadingAnimation = document.getElementById('loadingAnimation');
+   <div id="resultContainer" class="results-container">
+       <div class="placeholder-text">
+           <i class="fa-solid fa-magnifying-glass-plus" style="font-size: 2rem; margin-bottom: 10px; display:block;"></i>
+           輸入關鍵字，開啟您的美妝探索之旅
+       </div>
+   </div>
 
-        // 綁定預設推薦詞的點擊事件
-        document.querySelectorAll('.suggestion-tag').forEach(tag => {
-            tag.addEventListener('click', () => {
-                inputField.value = tag.textContent;
-                sendQuery(tag.textContent);
-            });
-        });
+   <script>
+       const apiURL = 'http://localhost:8080/api/search';
+       let isLoading = false;
 
-        /**
-         * 核心搜尋函式 (修正為 GET 方法)
-         */
-        async function sendQuery(query) {
-            if (isLoading || !query.trim()) {
-                return;
-            }
+       const inputField = document.getElementById('inputField');
+       const searchButton = document.getElementById('searchButton');
+       const resultContainer = document.getElementById('resultContainer');
+       const loadingAnimation = document.getElementById('loadingAnimation');
 
-            isLoading = true;
-            searchButton.disabled = true;
-            loadingAnimation.style.display = 'block';
-            resultContainer.innerHTML = ''; 
+       document.querySelectorAll('.tag').forEach(tag => {
+           tag.addEventListener('click', () => {
+               const text = tag.innerText.trim();
+               inputField.value = text;
+               sendQuery(text);
+           });
+       });
 
-            try {
-                // ✅ 修正點：使用 URL 參數傳遞 (GET)，而非 body (POST)
-                // encodeURIComponent 用於處理中文或特殊符號
-                const targetUrl = `${apiURL}?q=${encodeURIComponent(query)}`;
-                
-                const response = await fetch(targetUrl, {
-                    method: 'GET', // 明確指定為 GET
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+       async function sendQuery(query) {
+           if (isLoading || !query.trim()) return;
 
-                const data = await response.json();
+           isLoading = true;
+           searchButton.disabled = true;
+           loadingAnimation.style.display = 'block';
+           resultContainer.innerHTML = '';
 
-                // 處理業務邏輯錯誤 (ResultFormatter 回傳的 status)
-                if (data.status === 'error') {
-                     showError(data.errorMessage || '查詢發生錯誤');
-                     return;
-                }
-                
-                // 處理 HTTP 錯誤
-                if (!response.ok) {
-                    showError(`伺服器錯誤: ${response.status}`);
+           try {
+               const targetUrl = `${apiURL}?q=${encodeURIComponent(query)}`;
+               const response = await fetch(targetUrl, { method: 'GET', headers: { 'Content-Type': 'application/json' }});
+               const data = await response.json();
+
+               if (data.status === 'error') {
+                    showError(data.errorMessage || '查詢發生錯誤');
                     return;
-                }
+               }
+               if (!response.ok) {
+                   showError(`伺服器錯誤: ${response.status}`);
+                   return;
+               }
 
-                renderResults(data.results);
+               renderResults(data.results);
 
-            } catch (error) {
-                console.error('API Error:', error);
-                showError('無法連線到伺服器，請確認後端程式是否已啟動 (localhost:8080)。');
-            } finally {
-                isLoading = false;
-                searchButton.disabled = false;
-                loadingAnimation.style.display = 'none';
-            }
-        }
+           } catch (error) {
+               console.error('API Error:', error);
+               showError('無法連線到伺服器，請確認後端程式是否已啟動。');
+           } finally {
+               isLoading = false;
+               searchButton.disabled = false;
+               loadingAnimation.style.display = 'none';
+           }
+       }
 
-        function renderResults(results) {
-            if (!results || results.length === 0) {
-                showError('查無符合資料，請嘗試其他關鍵字。');
-                return;
-            }
+       function renderResults(results) {
+           if (!results || results.length === 0) {
+               showError('查無符合資料，請嘗試其他關鍵字。');
+               return;
+           }
 
-            results.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'result-card';
+           results.forEach(item => {
+               const card = document.createElement('div');
+               card.className = 'card';
 
-                const title = document.createElement('h3');
-                const link = document.createElement('a');
-                link.href = item.url;
-                link.target = '_blank';
-                link.textContent = item.title;
-                title.appendChild(link);
+               const cleanSummary = item.summary ? item.summary : '暫無詳細說明';
+               const scoreValue = item.score ? item.score.toFixed(2) : 'N/A';
+               
+               // 渲染關鍵字標籤
+               let keywordsHtml = '';
+               if (item.relatedKeywords && item.relatedKeywords.length > 0) {
+                   keywordsHtml = `<div class="keywords-row">`;
+                   item.relatedKeywords.forEach(kw => {
+                       // 點擊關鍵字會重新搜尋
+                       keywordsHtml += `<span class="keyword-tag" onclick="window.sendQueryFromTag('${kw}')"><i class="fa-solid fa-tag"></i> ${kw}</span>`;
+                   });
+                   keywordsHtml += `</div>`;
+               }
 
-                const summary = document.createElement('p');
-                const cleanSummary = item.summary ? item.summary : '無摘要';
-                summary.textContent = cleanSummary;
+               card.innerHTML = `
+                   <div class="card-img-placeholder">
+                       <i class="fa-solid fa-pump-soap"></i>
+                   </div>
+                   <div class="card-content">
+                       <div class="card-title">
+                           <a href="${item.url}" target="_blank">${item.title}</a>
+                       </div>
+                       <div class="card-desc">${cleanSummary}</div>
+                       ${keywordsHtml}  <div class="card-footer">
+                           <span class="match-score">
+                               <i class="fa-solid fa-chart-line"></i> 相關度: ${scoreValue}
+                           </span>
+                           <a href="${item.url}" target="_blank" class="action-link">
+                               查看詳情 <i class="fa-solid fa-arrow-right"></i>
+                           </a>
+                       </div>
+                   </div>
+               `;
+              
+               resultContainer.appendChild(card);
+           });
+       }
 
-                const score = document.createElement('p');
-                score.className = 'score';
-                // 顯示分數 (四捨五入到小數點後2位)
-                score.innerHTML = `<strong>相關度:</strong> ${item.score ? item.score.toFixed(2) : 'N/A'}`;
+       function showError(msg) {
+           resultContainer.innerHTML = `
+               <div class="error-message">
+                   <i class="fa-solid fa-circle-exclamation" style="font-size: 2rem; margin-bottom: 10px; color: var(--accent-color);"></i>
+                   <p>${msg}</p>
+               </div>
+           `;
+       }
 
-                card.appendChild(title);
-                card.appendChild(summary);
-                card.appendChild(score);
-                resultContainer.appendChild(card);
-            });
-        }
+       // 全域函式供 onclick 使用
+       window.sendQueryFromTag = function(keyword) {
+           inputField.value = keyword;
+           sendQuery(keyword);
+       }
 
-        function showError(msg) {
-            resultContainer.innerHTML = `<p class="error-message" style="color: var(--color-primary); text-align: center; margin-top: 20px;">${msg}</p>`;
-        }
-
-        // 綁定事件
-        searchButton.addEventListener('click', () => {
-            sendQuery(inputField.value);
-        });
-
-        inputField.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                sendQuery(inputField.value);
-            }
-        });
-    </script>
+       searchButton.addEventListener('click', () => sendQuery(inputField.value));
+       inputField.addEventListener('keydown', (e) => {
+           if (e.key === 'Enter') sendQuery(inputField.value);
+       });
+   </script>
 </body>
 </html>

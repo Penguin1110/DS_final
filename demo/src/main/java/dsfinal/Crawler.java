@@ -1,10 +1,5 @@
 package dsfinal;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
 import java.net.URI;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -22,15 +17,20 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 public class Crawler {
     private HtmlHandler htmlHandler;
     private GoogleApiService googleService;
 
-    // 🚀 優化 1: 建立執行緒池 (同時允許 10 個請求並發)
+  
     private final ExecutorService executor = Executors.newFixedThreadPool(10);
 
     private static final HttpClient HTTP_CLIENT = HttpClient.newBuilder()
-        .connectTimeout(Duration.ofSeconds(3)) // 🚀 優化 2: 連線逾時縮短為 3 秒 (太慢就跳過)
+        .connectTimeout(Duration.ofSeconds(3)) 
         .followRedirects(HttpClient.Redirect.NORMAL)
         .version(HttpClient.Version.HTTP_2)
         .build();
@@ -62,7 +62,7 @@ public class Crawler {
 
         if (seedUrls.isEmpty()) return new ArrayList<>();
 
-        // 🚀 只取前 6 個結果來爬，避免太多垃圾資訊拖慢速度
+        // 取前 6 個結果來爬
         if (seedUrls.size() > 6) {
             seedUrls = seedUrls.subList(0, 6);
         }
@@ -70,20 +70,17 @@ public class Crawler {
         return fetchBatch(seedUrls);
     }
 
-    // ✅ 核心修改：平行爬取 (Parallel Crawling)
+    // 平行爬取
     public List<PageResult> fetchBatch(List<String> urls) {
-        // 使用 CompletableFuture 讓所有網址同時開爬
         List<CompletableFuture<PageResult>> futures = urls.stream()
             .map(url -> CompletableFuture.supplyAsync(() -> {
-                // 🚀 優化 3: 深度改為 1 (只抓 Google 給的頁面，不再往下抓子連結)
-                // 如果你還是想抓子頁面，改成 2，但速度會慢 3 倍
+                // Depth = 2 
                 return crawl(url, 2); 
             }, executor))
             .collect(Collectors.toList());
 
-        // 等待所有爬蟲回來，並攤平結果
         return futures.stream()
-            .map(CompletableFuture::join) // 等待結果
+            .map(CompletableFuture::join)
             .filter(Objects::nonNull)
             .map(root -> {
                 List<PageResult> flat = new ArrayList<>();
@@ -104,21 +101,31 @@ public class Crawler {
     }
 
     private PageResult crawl(String url, int depth) {
-        System.out.println("🚀 Crawling: " + url);
+       
+        if (depth == 2) {
+            System.out.println("🔴 [主頁面] Crawling: " + url);
+        } else {
+            System.out.println("   └── 🔵 [子頁面] Crawling: " + url);
+        }
+
         String html = fetchHtml(url);
         if (html == null) return null;
 
         PageResult page = htmlHandler.parseResults(html, url);
         
-        // 🚀 優化 4: 只有當 depth > 1 時才去抓子連結，且限制數量為 2
+        
         if (depth > 1 && page.subLinks != null) {
             int count = 0;
             for (String subLink : page.subLinks) {
-                if (count >= 5) break; // 每頁最多只抓 2 個子連結 (夠了)
+                if (count >= 5) break; // 每頁最多抓 5 個子連結
                 
-                // 子連結就不開執行緒了，避免爆炸
+                // 遞迴呼叫
                 PageResult child = crawl(subLink, depth - 1);
+                
                 if (child != null) {
+                    // 確認子頁面
+                    System.out.println("      ✅ [已收入子頁面] " + child.title);
+                    
                     page.addChildPage(child);
                     count++;
                 }
@@ -132,12 +139,12 @@ public class Crawler {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("User-Agent", USER_AGENTS.get(0))
-                .timeout(Duration.ofSeconds(4)) // 單頁請求最多等 4 秒
+                .timeout(Duration.ofSeconds(4))
                 .GET().build();
             HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) return response.body();
         } catch (Exception e) { 
-            // 忽略錯誤，繼續下一個
+            // 忽略錯誤
         }
         return null;
     }
