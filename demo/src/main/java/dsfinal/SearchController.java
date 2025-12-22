@@ -59,7 +59,7 @@ public class SearchController {
 
             //呼叫 formatter.format 時，自動去 PageResult 抓取 top keywords
             // 並放進 JSON 的 relatedKeywords 欄位回傳給前端
-            return formatter.format(results);
+            return formatter.format(results, keywords);
 
         } catch (Exception e) {
             e.printStackTrace();
